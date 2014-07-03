@@ -1,0 +1,314 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx,amsmath, amsthm, amssymb, color, wrapfig}
+\usepackage{placeins}
+\usepackage{fancyvrb}
+
+%\usepackage[dcucite,abbr]{harvard}
+\usepackage[round]{natbib}
+%\harvardparenthesis{none}
+%\harvardyearparenthesis{round}
+
+\usepackage{booktabs}
+\usepackage{pstricks}
+
+\begin{document}
+
+\title{PedCTM Manual (v2.0)}
+\author{Flurin H\"anseler \& Thomas M\"uhlematter \\ Transport and Mobility Laboratory, EPFL}
+\date{\today}
+\maketitle
+
+\section{Purpose of PedCTM}
+
+PedCTM is a Java implementation of a mesoscopic, cell-based pedestrian flow simulator developed by \citet{PedCTMPartB}. It features an efficient architecture and can be used to generate advanced graphical output. The current version of PedCTM is based on an earlier implementation developed by \cite{muhlematter_thesis}. As noted in the previous reference, the free Java library `Processing' is required to run PedCTM. % JAVA software developed to simulate and study how pedestrians move in pedestrian facilities. 
+%It can be used to visualize pedestrian flows on the screen or to output them as pictures and text files. The text files are designed to be output as figures.
+
+%Furthermore, it can also be used to output static heatmaps from VisioSafe data.
+
+\section{Input}
+To launch PedCTM, a layout and a demand configuration file have to be specified, which in the following are referred to as \verb+layout.txt+ and \verb+demand.txt+, respectively.
+%In this section, we examine how the software works as a simulation and visualization tool. First, we examine the format of the layout and demand files and then we explain what the outputs are.
+
+\subsection{Layout file}\label{layout_file}
+The format of \verb+layout.txt+ is described at the example of a straight corridor consisting of five cells:
+\begin{Verbatim}[numbers=left]
+#Simulation
+5 2.7 1.1 0.9 a5 a3
+#Cells
+a1 z1 1.913 7.29 5.4 1.0
+20 20 60 20 60 60 20 60
+a2
+a2 z2 1.913 7.29 5.4 1.0
+60 20 100 20 100 60 60 60
+a1 a3
+a3 z2 1.913 7.29 5.4 1.0
+100 20 140 20 140 60 100 60
+a2 a4
+a4 z2 1.913 7.29 5.4 1.0
+140 20 180 20 180 60 140 60
+a3 a5
+a5 z2 1.913 7.29 5.4 1.0
+180 20 220 20 220 60 180 60
+a4
+#End
+\end{Verbatim}
+Lines \verb+1,3+ as well as the last line are used to structure the layout file.
+
+Line \verb+2+ contains global simulation parameters:
+\begin{enumerate}
+\item Total number of cells ($N_\xi = 5$)
+\item Reference length\footnote{The reference cell length is not used in any computations due to the non-dimensional character of PedCTM. For the same reason, the free-flow speed $v_f$ is not required anywhere except in the calibration. Without loss of generality, the simulation time step $\Delta \tau = \Delta L/v_f$ is assumed to be equal to unity.} of cells ($\Delta L = 2.7$~m)
+\item Weight of static floor field in cell potential ($\alpha = 1.1$)
+\item Weight of dynamic floor field in cell potential ($\beta = 0.9$)
+\item List of sensors (optional, e.g.\ \verb+a3, a4+)
+\end{enumerate}
+
+
+Each cell is defined on three lines (e.g.\ lines \verb+4-6, 7-9+, etc.).
+\begin{itemize}
+	\item The first line of each cell (e.g.\ lines \verb+4,7+, etc.) contains local cell parameters:
+\begin{enumerate}
+\item Unique cell ID (e.g.\ \verb+a1+)
+\item Zone containing the cell (e.g.\ \verb+z1+)
+\item Congestion sensitivity ($\gamma = 1.913$~\#/m$^2$)
+\item Size of cell area ($A = 7.29$~m$^2$, typically but not necessarily $A = \Delta L^2$)
+\item Critical density ($k_c = 5.4$~\#/m$^2$)
+\item Capacity constraint parameter ($\delta = 1$)
+\end{enumerate}
+\item The second line (e.g.\ lines \verb+5,8+, etc.) contains the coordinates of the four corners (in pixels) of the cell. Coordinates are listed in the direction of the clock.
+\item The third line (e.g.\ lines \verb+6,9+, etc.) contains the list of IDs of neighboring cells. Adjacency of cells has to be specified twice, as in any undirected graph (\verb+a1+ is neighbor with \verb+a2+, and \verb+a2+ is neighbor with \verb+a1+).
+\end{itemize}
+Note that no blank lines are allowed.
+
+\subsection{Demand file} \label{demand_file}
+Pedestrian demand is determined by \verb+demand.csv+. An example can be found in the following. Each line represents a pedestrian group $\ell$, defined by a departure time interval $\tau$, a route $R$, and a group size $m_\ell$. No blank lines are allowed.
+
+\begin{Verbatim}
+0,zs-z1-zf, 13.0, 19.6
+1,zs-z1-zf, 14.5, 27.7
+2,zs-z1-zf, 11.0, 5.3
+\end{Verbatim}
+
+\begin{enumerate}
+\item Departure time interval ($\tau = 0,1,\dots$ zero-based numbering)
+\item Route ($R = (z1, z2, \dots$))
+\item Observed travel time ($TT_\ell = 13.0$~[--], measured in simulation time steps\footnote{Used in calibration only, where it is automatically calculated and converted from a disaggregate demand file.})
+\item Group size ($m_l = 19.6$~\#)
+\end{enumerate}
+
+\section{Output}
+All output is saved in folder \verb+output+. Visual output can be turned off for increased performance.
+
+\subsection{Text output}
+The following text output is generated by default:
+\begin{enumerate}
+
+\item \verb+spaceTime.txt+: Contains cell densities for each time step. Every row represents a time step, every column a cell. The cell IDs are shown in the first line and are not ordered.
+
+\item \verb+TT_avg.txt+: Contains average travel time of each group. Rows represent groups; columns represent departure time interval, route, average simulated travel time, group size.
+\begin{Verbatim}
+0,zs-z1-zf, 13.34, 19.6830
+\end{Verbatim}
+Travel time is measured in number of simulation time intervals.
+
+\item \verb+TT_dist.txt+: Contains travel time distribution of each group. Columns represent departure time interval, route, travel time, size of group fraction.
+\begin{Verbatim}
+0,z3-z2-z1,15.0,1.6166493426121438
+0,z3-z2-z1,16.0,2.109722281466179
+0,z3-z2-z1,17.0,2.6335875704809757
+\end{Verbatim}
+
+\item \verb+`cid'.txt+: Represents a log book of arrivals at cell \verb+cid+, if the corresponding cell has been specified as a `sensor' in \verb+layout.txt+. Columns represent departure time interval, route, arrival time interval at sensor and size of group fraction.
+\begin{Verbatim}
+0,z1-z2-z3,7,4.312275313662844
+0,z1-z2-z3,4,4.477101990205742
+0,z1-z2-z3,6,5.340444944324034
+\end{Verbatim}
+
+\item \verb+routes/`route'.txt+: Contains route-specific\footnote{Cell densities are provided for each \emph{route}, but are not distinguished with respect to \emph{groups}, i.e., pedestrians are not distinguished with respect to their departure time interval.} cell densities for each time step. The first line contains the static floor field for each cell for the given route. The sequence of cells is the same as in \verb+spacetime.txt+; rows represent cells and columns time steps.
+
+\end{enumerate}
+
+\subsection{Graphical output}
+The following graphical output can by generated by PedCTM:
+%All the pictures in this section use the color scale defined by the NCHRP as shown below.
+
+\begin{enumerate}
+
+\item \verb+density_N.png+: Density heat map of time interval $N$ visualized using the NCHRP scale (table \ref{NCHRP_LOS_thresholds}).
+
+\begin{table}[htb]
+\centering
+\definecolor{LOS_A}{RGB}{0,1,254}
+\definecolor{LOS_B}{RGB}{0,255,255}
+\definecolor{LOS_C}{RGB}{9,255,0}
+\definecolor{LOS_D}{RGB}{252,255,0}
+\definecolor{LOS_E}{RGB}{255,92,0}
+\definecolor{LOS_F}{RGB}{251,0,0}
+\begin{tabular}{p{10pt} c l}
+\toprule
+& LOS & Pedestrian density\\
+\midrule
+\begin{pspicture}(0.5ex,0.5ex)(4ex,2ex) \psframe[linecolor=black, fillcolor=LOS_A, fillstyle=solid,linewidth=0.5pt](0,0)(4ex,2.5ex)
+\end{pspicture} & A & \hfill$\rho < \mbox{0.179 [\#/m$^2$]}$ \\
+\begin{pspicture}(0.5ex,0.5ex)(4ex,2ex) \psframe[linecolor=black, fillcolor=LOS_B, fillstyle=solid,linewidth=0.5pt](0,0)(4ex,2.5ex)     
+\end{pspicture} & B & $\mbox{0.179 } \leq \rho < \mbox{0.270 }$ \\
+\begin{pspicture}(0.5ex,0.5ex)(4ex,2ex) \psframe[linecolor=black, fillcolor=LOS_C, fillstyle=solid,linewidth=0.5pt](0,0)(4ex,2.5ex) 
+\end{pspicture} & C & $\mbox{0.270 }\leq \rho < \mbox{0.455 }$ \\
+\begin{pspicture}(0.5ex,0.5ex)(4ex,2ex) \psframe[linecolor=black, fillcolor=LOS_D, fillstyle=solid,linewidth=0.5pt](0,0)(4ex,2.5ex) 
+\end{pspicture} & D & $\mbox{0.455 }\leq \rho < \mbox{0.714 }$ \\
+\begin{pspicture}(0.5ex,0.5ex)(4ex,2ex) \psframe[linecolor=black, fillcolor=LOS_E, fillstyle=solid,linewidth=0.5pt](0,0)(4ex,2.5ex) 
+\end{pspicture} & E & $\mbox{0.714 }\leq \rho < \mbox{1.333 }$ \\
+\begin{pspicture}(0.5ex,0.5ex)(4ex,2ex) \psframe[linecolor=black, fillcolor=LOS_F, fillstyle=solid,linewidth=0.5pt](0,0)(4ex,2.5ex) 
+\end{pspicture} & F & $  \mbox{1.333 } \leq \rho$ \\
+\bottomrule
+\end{tabular}
+\caption{Pedestrian walkway density threshold values according to NCHRP.}
+\label{NCHRP_LOS_thresholds}
+\end{table}
+
+\item \verb+flow_nd_N.png+: Non-dimensional flow map of time interval $N$. A generic, 5-color scale is used (table \ref{five-color_scale}). Flow is normalized with respect to maximum hydrodynamic cell flow \citep{PedCTMPartB}.
+
+\begin{table}[htb]
+\centering
+\definecolor{LOS_A}{RGB}{0,1,254}
+\definecolor{LOS_B}{RGB}{0,255,255}
+\definecolor{LOS_C}{RGB}{9,255,0}
+\definecolor{LOS_D}{RGB}{252,255,0}
+\definecolor{LOS_E}{RGB}{255,92,0}
+\definecolor{LOS_F}{RGB}{251,0,0}
+\begin{tabular}{p{10pt} c l}
+\toprule
+& Range\\
+\midrule
+\begin{pspicture}(0.5ex,0.5ex)(4ex,2ex) \psframe[linecolor=black, fillcolor=LOS_A, fillstyle=solid,linewidth=0.5pt](0,0)(4ex,2.5ex)
+\end{pspicture} & \hfill$\mbox{0 } \leq k < \mbox{0.2 }$ \\
+\begin{pspicture}(0.5ex,0.5ex)(4ex,2ex) \psframe[linecolor=black, fillcolor=LOS_B, fillstyle=solid,linewidth=0.5pt](0,0)(4ex,2.5ex)     
+\end{pspicture} & $\mbox{0.2 } \leq k < \mbox{0.4 }$ \\
+\begin{pspicture}(0.5ex,0.5ex)(4ex,2ex) \psframe[linecolor=black, fillcolor=LOS_C, fillstyle=solid,linewidth=0.5pt](0,0)(4ex,2.5ex) 
+\end{pspicture} & $\mbox{0.4 }\leq k < \mbox{0.6 }$ \\
+\begin{pspicture}(0.5ex,0.5ex)(4ex,2ex) \psframe[linecolor=black, fillcolor=LOS_D, fillstyle=solid,linewidth=0.5pt](0,0)(4ex,2.5ex) 
+\end{pspicture} & $\mbox{0.6 }\leq k < \mbox{0.8 }$ \\
+\begin{pspicture}(0.5ex,0.5ex)(4ex,2ex) \psframe[linecolor=black, fillcolor=LOS_E, fillstyle=solid,linewidth=0.5pt](0,0)(4ex,2.5ex) 
+\end{pspicture} & $\mbox{0.8 }\leq k \leq \mbox{1}$ \\
+\bottomrule
+\end{tabular}
+\caption{Generic five-color scale for a non-dimensional quantity $k \in [0,1]$.}
+\label{five-color_scale}
+\end{table}
+
+\item \verb+dens_nd_N.png+: Non-dimensional density map of time interval $N$ (for color scale, see table \ref{five-color_scale}). Density is normalized with respect to critical cell density.
+
+\item \verb+speed_nd_N.png+: Non-dimensional speed map of time interval $N$ (for color scale, see table \ref{five-color_scale}). Speed is normalized with respect to free-flow speed.
+
+\end{enumerate}
+
+
+\section{Invoking PedCTM}
+PedCTM can be invoked either via a graphical user interface or from the terminal.
+
+\subsection{Terminal}
+PedCTM is invoked from a UNIX terminal using the command
+\begin{Verbatim}
+java -jar PedCTMFunctional.jar $layout $demand $visual
+\end{Verbatim}
+assuming that a complied version of PedCTM is contained by \verb+PedCTMFunctional.jar+. The following arguments are required: 
+
+\begin{enumerate}
+\item \verb+$layout+: path to layout file (e.g. \verb+layout.txt+)
+\item \verb+$demand+:  path to demand file  (e.g. \verb+demand.csv+)
+\item \verb+$visual+: boolean for graphical output (\verb+true+ if graphical output is desired)
+\end{enumerate}
+Resulting output will be saved to \verb+output+ folder in the directory where PedCTM is executed. Regarding performance of PedCTM, in text-only mode, the simulation of pedestrian flows in PU West of Gare de Lausanne during the full 90-minute morning peak hour takes around 45 minutes on a current PC system.
+
+\subsubsection{Generating executable Java archive}
+An executable Java archive is created in two steps
+\begin{Verbatim}[numbers=left]
+javac FunctionalPedCTMMain.java
+jar cf FunctionalPedCTMMain.jar FunctionalPedCTMMain.class
+\end{Verbatim}
+%Due to current incompatibility issues, these steps need to be performed directly on the server. 
+
+\subsection{Graphical user interface}
+The user interface of PedCTM is launched by running \verb+GUIPedCTMMain.java+. Scenario specification files \verb+layout.txt+ and \verb+demand.csv+ are loaded consecutively via the menu `File: Open'. The simulation is started by clicking on the `Start Simulation' button, and output can be generated by pressing the \verb+Output+ button.
+
+\subsubsection{Generation of heat maps from existing data}
+Only accessible from the GUI, heat maps from existing data can be generated by selecting `Menu: Heatmap'. A \verb+layout.csv+ and a \verb+demand.csv+ file have then to be chosen in this order.
+
+\begin{itemize}
+\item \verb+layout.csv+ contains for each cell a separate line specifying the attributes \verb+cellid+, \verb+coordinate1+, \verb+coordinate2+, \dots, \verb+coordinate8+. (The file structure is thus completely different from that used for a PedCTM simulation.)
+\begin{Verbatim}
+...
+-301,3920,34720,15680,34720,16240,38360,3920,39200
+-302,3920,39200,16240,38360,16240,41160,3920,41440
+-303,3920,41440,16240,41160,15680,44800,3920,44800
+...
+\end{Verbatim}
+
+\item \verb+demand.csv+ contains on each line the attributes \verb+zone ID+, \verb+time interval+, \verb+density+. 
+\begin{Verbatim}
+...
+-303,37,1.0193
+-303,38,1.6875
+-303,39,1.4063
+-303,40,2.9239
+...
+\end{Verbatim}
+\end{itemize}
+
+Heat maps are output as \verb+heatmap_N.png+ using the NCHRP color scale (table \ref{NCHRP_LOS_thresholds}), where \verb+N+ represents the $N$-th time step.
+
+\section{Calibration}
+A framework has been developed to calibrate the free-flow speed $v_f$, congestion sensitivity $\gamma$, critical density $k_c$, as well as the weights of the dynamic and the static floor fields $\alpha$ and $\beta$. It is assumed that hydrodynamic flow in all cells is governed by the same fundamental diagram, i.e., $\gamma$ and $k_c$ are homogeneous across cells. A preliminary and outdated description of the calibration procedure can be found in \cite{CalibPedCTM}.
+
+To calibrate PedCTM, \verb+PedCTM/Calibration/src/Main.java+ needs to be compiled and executed. All parameters of the calibration routine are specified in \verb+PedCTM/Calibration/src/calibration/Calibration.java+.
+
+
+Three input and one output file are to be specified:
+\begin{itemize}
+	\item \verb+Parameters.csv+ contains for each calibration parameter an initial value, a lower bound, an upper bound, as well as a maximum step size in the simulated annealing procedure.	
+\begin{Verbatim}[numbers=left]
+1.069, 0.95, 1.2, 0.05
+1.913, 1.5, 2.1, 0.25
+5.4, 4, 7, 0.5
+1.0, 0.0, 3.0, 0.5
+1.0, 0.0, 3.0, 0.5
+\end{Verbatim}
+Line \verb+1+ represents free-flow speed $v_f$, line~\verb+2+ congestion sensitivity $\gamma$, line~\verb+3+ critical density $k_c$, line~\verb+4+ weight of static floor field $\alpha$, and line~\verb+5+ weight of dynamic floor field.
+
+	\item \verb+DisAggDemand.csv+ represents a disaggregate demand table. Each line represents a pedestrian, characterized by a departure time in seconds, a route, travel time in seconds, and a weight (always equal to unity for disaggregate demand tables).
+\begin{Verbatim}
+...
+10.035,Znord-Zpi-Zsud,21.2,1
+10.516,Zest-Zpi-Zsud,20.4,1
+10.618,Zest-Zpi-Zsud,16.4,1
+...
+\end{Verbatim}
+
+	\item \verb+layout.csv+ has the same structure as described in section \ref{layout_file}.
+
+	\item From the disaggregate demand table, an aggregated trip table is computed and saved as \verb+AggDemand.csv+ in the \verb+output+ folder. It has the same format as \verb+demand.csv+ described in section \ref{demand_file}. Dimensional time is converted into non-dimensional time based on the simulation time step $\Delta \tau = \Delta L/v_f$. While it is not the main purpose of the calibration framework, the latter can thus be used to calculate aggregated demand from a disaggregate trip table.
+
+	
+\end{itemize} 
+
+Particularly important in the calibration routine are the following parameters: 
+\begin{itemize}
+	\item A fixed constant \verb+C+ used by the calibration heuristic \cite{CalibPedCTM}. A value of $C=2$ has empirically proved a good convergence behavior.
+	\item The total number of iterations \verb+numberSteps+, set for instance to \verb+1000+. One iteration of the calibration scheme using part of PU West takes around 3 minutes, if the busiest 25-min period of the morning peak hour period (07:32~--~07:57) is considered.
+\end{itemize}
+
+\emph{\color{red}The calibration framework is currently not publicly available.}
+
+
+\bibliographystyle{plainnat}
+\bibliography{../../../Literature/Flurin_Bibliography}
+
+\end{document}
+
+
+
+
+
+

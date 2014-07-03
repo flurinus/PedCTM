@@ -1,0 +1,30 @@
+\begin{thebibliography}{3}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Farooq et~al.()Farooq, H\"anseler, M\"uhlematter, and
+  Bierlaire]{CalibPedCTM}
+B.~Farooq, F.S. H\"anseler, T.~M\"uhlematter, and M.~Bierlaire.
+\newblock {Calibration of pedestrian cell transmission model (PedCTM) -- Some
+  notes}.
+\newblock Internal document.
+
+\bibitem[H\"anseler et~al.(2014)H\"anseler, Farooq, M\"uhlematter, and
+  Bierlaire]{PedCTMPartB}
+F.S. H\"anseler, B.~Farooq, T.~M\"uhlematter, and M.~Bierlaire.
+\newblock A quasi-isotropic model for transient and multi-directional
+  pedestrian flows in public walking areas.
+\newblock \emph{Submitted to Transportation Research Part B: Methodological},
+  2014.
+
+\bibitem[M\"uhlematter et~al.(2013)M\"uhlematter, H\"anseler, Farooq, and
+  Bierlaire]{muhlematter_thesis}
+T.~M\"uhlematter, F.S. H\"anseler, B.~Farooq, and M.~Bierlaire.
+\newblock \emph{Development of a macroscopic multi-directional pedestrian
+  propagation model}.
+\newblock Bachelor's thesis, EPFL, 2013.
+
+\end{thebibliography}
